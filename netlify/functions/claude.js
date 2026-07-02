@@ -6,7 +6,7 @@ exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
 
-    // Convert Anthropic message format → OpenAI format (compatible Gemini)
+    // Convert Anthropic message format → OpenAI format
     const messages = [];
     if (body.system) {
       messages.push({ role: "system", content: body.system });
@@ -17,7 +17,7 @@ exports.handler = async (event) => {
         .map((b) => {
           if (b.type === "text") return { type: "text", text: b.text };
           if (b.type === "image") return { type: "image_url", image_url: { url: `data:${b.source.media_type};base64,${b.source.data}` } };
-          return null; // PDFs ignorés
+          return null;
         })
         .filter(Boolean);
       messages.push({
@@ -26,14 +26,14 @@ exports.handler = async (event) => {
       });
     }
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gemini-2.0-flash",
+        model: "meta-llama/llama-3.1-8b-instruct:free",
         max_tokens: body.max_tokens || 1000,
         messages,
       }),
@@ -42,7 +42,7 @@ exports.handler = async (event) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Gemini API error:", JSON.stringify(data));
+      console.error("OpenRouter API error:", JSON.stringify(data));
       return {
         statusCode: response.status,
         body: JSON.stringify({ type: "error", error: data.error || data }),
