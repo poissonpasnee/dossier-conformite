@@ -6,7 +6,7 @@ exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
 
-    // Convert Anthropic message format → OpenAI format (used by Groq)
+    // Convert Anthropic message format → OpenAI format (compatible Gemini)
     const messages = [];
     if (body.system) {
       messages.push({ role: "system", content: body.system });
@@ -17,20 +17,23 @@ exports.handler = async (event) => {
         .map((b) => {
           if (b.type === "text") return { type: "text", text: b.text };
           if (b.type === "image") return { type: "image_url", image_url: { url: `data:${b.source.media_type};base64,${b.source.data}` } };
-          return null; // PDFs non supportés par Groq — ignorés silencieusement
+          return null; // PDFs ignorés
         })
         .filter(Boolean);
-      messages.push({ role: msg.role, content: parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts });
+      messages.push({
+        role: msg.role,
+        content: parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts,
+      });
     }
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: "gemini-2.0-flash",
         max_tokens: body.max_tokens || 1000,
         messages,
       }),
@@ -39,7 +42,7 @@ exports.handler = async (event) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Groq API error:", JSON.stringify(data));
+      console.error("Gemini API error:", JSON.stringify(data));
       return {
         statusCode: response.status,
         body: JSON.stringify({ type: "error", error: data.error || data }),
