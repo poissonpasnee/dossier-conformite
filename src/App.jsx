@@ -538,6 +538,10 @@ export default function DossierConformite() {
         }),
       });
       const data = await response.json();
+      if (data.type === "error") {
+        setError(`Erreur API : ${data.error?.message || JSON.stringify(data.error)}`);
+        return;
+      }
       const text = (data.content || [])
         .filter((b) => b.type === "text")
         .map((b) => b.text)

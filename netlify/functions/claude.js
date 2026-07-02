@@ -16,11 +16,15 @@ exports.handler = async (event) => {
     });
 
     const data = await response.json();
+    if (!response.ok) {
+      console.error("Anthropic API error:", JSON.stringify(data));
+    }
     return {
       statusCode: response.status,
       body: JSON.stringify(data),
     };
-  } catch {
+  } catch (err) {
+    console.error("Function error:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Erreur interne du serveur." }),
